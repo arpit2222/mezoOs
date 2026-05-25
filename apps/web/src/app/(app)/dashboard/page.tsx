@@ -1,9 +1,9 @@
 'use client';
 import { useState } from 'react';
 import { ArrowUpRight, ArrowDownRight, DollarSign, Bitcoin, ShieldAlert, Loader2 } from 'lucide-react';
-import { useAccount, useBalance, useWriteContract } from 'wagmi';
-import { parseEther, encodeFunctionData } from 'viem';
-import { CONTRACT_ADDRESSES, MezoTreasuryABI } from '@/config/contracts';
+import { useAccount, useBalance, useWriteContract, useReadContract } from 'wagmi';
+import { parseEther, encodeFunctionData, formatEther } from 'viem';
+import { CONTRACT_ADDRESSES, MezoTreasuryABI, ERC20ABI } from '@/config/contracts';
 import { toast } from 'sonner';
 
 export default function DashboardPage() {
@@ -13,6 +13,22 @@ export default function DashboardPage() {
   const [isPending, setIsPending] = useState(false);
 
   const { writeContractAsync } = useWriteContract();
+
+  const { data: btcCollateralRaw, refetch: refetchBtc } = useReadContract({
+    address: CONTRACT_ADDRESSES.MezoTreasury as `0x${string}`,
+    abi: MezoTreasuryABI,
+    functionName: 'btcCollateral',
+    args: address ? [address] : undefined,
+    query: { enabled: !!address }
+  });
+
+  const { data: musdBorrowedRaw, refetch: refetchMusd } = useReadContract({
+    address: CONTRACT_ADDRESSES.MockMUSD as `0x${string}`,
+    abi: ERC20ABI,
+    functionName: 'balanceOf',
+    args: address ? [address] : undefined,
+    query: { enabled: !!address }
+  });
 
   const handleDeposit = async () => {
     if (!isConnected || !address) {
@@ -32,6 +48,8 @@ export default function DashboardPage() {
 
       toast.success(`Successfully deposited ${depositAmount} BTC! Tx Hash: ${txHash}`);
       setIsPending(false);
+      refetchBtc();
+      refetchMusd();
     } catch (e: any) {
       setIsPending(false);
       console.error(e);
@@ -69,9 +87,11 @@ export default function DashboardPage() {
               <Bitcoin size={16} className="text-primary" />
             </div>
           </div>
-          <p className="text-3xl font-bold">2.45 BTC</p>
+          <p className="text-3xl font-bold">
+            {btcCollateralRaw ? Number(formatEther(btcCollateralRaw as bigint)).toFixed(4) : '0.0000'} BTC
+          </p>
           <p className="text-sm text-green-500 flex items-center gap-1 mt-2">
-            <ArrowUpRight size={14} /> +0.15 this month
+            <ArrowUpRight size={14} /> Total Deposited
           </p>
         </div>
 
@@ -82,7 +102,9 @@ export default function DashboardPage() {
               <DollarSign size={16} className="text-destructive" />
             </div>
           </div>
-          <p className="text-3xl font-bold">45,000 MUSD</p>
+          <p className="text-3xl font-bold">
+            {musdBorrowedRaw ? Number(formatEther(musdBorrowedRaw as bigint)).toLocaleString(undefined, { maximumFractionDigits: 2 }) : '0'} MUSD
+          </p>
           <p className="text-sm text-muted-foreground mt-2">@ 1% fixed APR</p>
         </div>
 
