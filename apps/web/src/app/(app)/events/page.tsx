@@ -19,10 +19,10 @@ export default function EventsPage() {
       try {
         setIsLoading(true);
         const currentBlock = await publicClient.getBlockNumber();
-        // Fetch last 10000 blocks to avoid RPC rate limits on testnet
-        const tenThousand = BigInt(10000);
+        // Fetch last 100 blocks to avoid RPC rate limits on testnet
+        const lookback = BigInt(100);
         const zero = BigInt(0);
-        const fromBlock = currentBlock - tenThousand > zero ? currentBlock - tenThousand : zero;
+        const fromBlock = currentBlock - lookback > zero ? currentBlock - lookback : zero;
 
         // 1. Treasury Deposits
         const depositLogs = await publicClient.getLogs({
@@ -55,7 +55,7 @@ export default function EventsPage() {
             color: 'text-orange-500',
             bg: 'bg-orange-500/20',
             title: 'Collateral Deposited',
-            desc: `Deposited ${formatEther((log.args as any).btcAmount || zero)} BTC and minted ${formatEther((log.args as any).musdMinted || zero)} MUSD`,
+            desc: `Deposited ${formatEther((log.args as any).btcAmount || zero)} BTC and minted ${new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 }).format(Number(formatEther(((log.args as any).musdMinted || zero) / (10n ** 18n))))} MUSD`,
             blockNumber: log.blockNumber
           })),
           ...invCreatedLogs.map(log => ({
