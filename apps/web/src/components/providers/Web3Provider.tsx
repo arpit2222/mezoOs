@@ -5,14 +5,27 @@ import { WagmiProvider } from 'wagmi';
 import { QueryClientProvider, QueryClient } from '@tanstack/react-query';
 import { getConfig } from '@mezo-org/passport';
 
-const config = getConfig({
-  appName: 'MezoOS',
-  walletConnectProjectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || 'YOUR_PROJECT_ID',
-});
-
-const queryClient = new QueryClient();
+import { useState, useEffect } from 'react';
 
 export function Web3Provider({ children }: { children: React.ReactNode }) {
+  const [mounted, setMounted] = useState(false);
+  const [config, setConfig] = useState<any>(null);
+  const [queryClient] = useState(() => new QueryClient());
+
+  useEffect(() => {
+    setMounted(true);
+    setConfig(
+      getConfig({
+        appName: 'MezoOS',
+        walletConnectProjectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || 'YOUR_PROJECT_ID',
+      })
+    );
+  }, []);
+
+  if (!mounted || !config) {
+    return <>{children}</>;
+  }
+
   return (
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
