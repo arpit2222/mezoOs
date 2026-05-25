@@ -1,0 +1,12 @@
+node_modules/
+.env
+.env.*
+!.env.example
+dist/
+build/
+.next/
+coverage/
+packages/contracts/artifacts/
+packages/contracts/cache/
+packages/contracts/typechain-types/
+.DS_Store
