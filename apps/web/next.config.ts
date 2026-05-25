@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  transpilePackages: ['@mezo-org/orangekit-contracts'],
 };
 
 export default nextConfig;

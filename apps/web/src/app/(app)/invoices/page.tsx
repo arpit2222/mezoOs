@@ -55,10 +55,8 @@ export default function InvoicesPage() {
         </div>
         
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button className="gap-2">
-              <Plus size={16} /> New Invoice
-            </Button>
+          <DialogTrigger render={<Button className="gap-2" />}>
+            <Plus size={16} /> New Invoice
           </DialogTrigger>
           <DialogContent className="sm:max-w-[425px] border-border bg-card">
             <DialogHeader>
