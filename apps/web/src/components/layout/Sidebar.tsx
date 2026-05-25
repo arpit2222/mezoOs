@@ -17,8 +17,23 @@ const navItems = [
   { name: 'AI Assistant', href: '/ai', icon: Bot },
 ];
 
+import { useAccount, useBalance, useReadContract } from 'wagmi';
+import { formatUnits } from 'viem';
+import { CONTRACT_ADDRESSES, ERC20ABI } from '@/config/contracts';
+
 export function Sidebar() {
   const pathname = usePathname();
+  const { address } = useAccount();
+  
+  const { data: btcBalance } = useBalance({ address });
+  
+  const { data: musdBalance } = useReadContract({
+    address: CONTRACT_ADDRESSES.MockMUSD as `0x${string}`,
+    abi: ERC20ABI,
+    functionName: 'balanceOf',
+    args: address ? [address] : undefined,
+    query: { enabled: !!address }
+  });
 
   return (
     <aside className="w-64 border-r border-border bg-card h-[calc(100vh-4rem)] sticky top-16 flex flex-col">
@@ -43,14 +58,31 @@ export function Sidebar() {
         })}
       </div>
       
-      <div className="p-4 border-t border-border">
+      <div className="p-4 border-t border-border space-y-3">
+        <div className="bg-secondary/50 rounded-lg p-4">
+          <p className="text-xs text-muted-foreground mb-1 uppercase tracking-wider">Your Balances</p>
+          <div className="space-y-2 mt-3">
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-muted-foreground">BTC</span>
+              <span className="font-semibold text-foreground">
+                {btcBalance ? Number(btcBalance.formatted).toFixed(4) : '0.0000'}
+              </span>
+            </div>
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-muted-foreground">MUSD</span>
+              <span className="font-semibold text-foreground">
+                {musdBalance ? Number(formatUnits(musdBalance as bigint, 18)).toFixed(2) : '0.00'}
+              </span>
+            </div>
+          </div>
+        </div>
+
         <div className="bg-secondary/50 rounded-lg p-4">
           <p className="text-xs text-muted-foreground mb-2">Mezo Utility Tier</p>
           <div className="flex items-center justify-between">
-            <span className="font-semibold text-primary">Pro Tier</span>
-            <span className="text-xs bg-primary/20 text-primary px-2 py-0.5 rounded">Active</span>
+            <span className="font-semibold text-primary text-sm">Pro Tier</span>
+            <span className="text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded">Active</span>
           </div>
-          <p className="text-[10px] text-muted-foreground mt-2">1,000 MEZO Locked</p>
         </div>
       </div>
     </aside>
