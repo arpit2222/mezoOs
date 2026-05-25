@@ -20,6 +20,7 @@ const navItems = [
 import { useAccount, useBalance, useReadContract } from 'wagmi';
 import { formatUnits } from 'viem';
 import { CONTRACT_ADDRESSES, ERC20ABI } from '@/config/contracts';
+import { useEffect, useState } from 'react';
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -34,6 +35,20 @@ export function Sidebar() {
     args: address ? [address] : undefined,
     query: { enabled: !!address }
   });
+
+  // Fallback for when Wagmi's public RPC is down but the user's MetaMask RPC works
+  const [fallbackBtc, setFallbackBtc] = useState<string | null>(null);
+  
+  useEffect(() => {
+    if (address && !btcBalance && (window as any).ethereum) {
+      (window as any).ethereum.request({
+        method: 'eth_getBalance',
+        params: [address, 'latest']
+      }).then((bal: string) => {
+        setFallbackBtc(Number(formatUnits(BigInt(bal), 18)).toFixed(4));
+      }).catch(console.error);
+    }
+  }, [address, btcBalance]);
 
   return (
     <aside className="w-64 border-r border-border bg-card h-[calc(100vh-4rem)] sticky top-16 flex flex-col">
@@ -65,7 +80,7 @@ export function Sidebar() {
             <div className="flex justify-between items-center text-sm">
               <span className="text-muted-foreground">BTC</span>
               <span className="font-semibold text-foreground">
-                {btcBalance ? Number(btcBalance.formatted).toFixed(4) : '0.0000'}
+                {btcBalance ? Number(btcBalance.formatted).toFixed(4) : (fallbackBtc || '0.0000')}
               </span>
             </div>
             <div className="flex justify-between items-center text-sm">
