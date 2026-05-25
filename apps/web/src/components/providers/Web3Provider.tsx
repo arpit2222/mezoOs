@@ -7,7 +7,7 @@ import { getConfig } from '@mezo-org/passport';
 
 const config = getConfig({
   appName: 'MezoOS',
-  walletConnectProjectId: 'YOUR_PROJECT_ID',
+  walletConnectProjectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || 'YOUR_PROJECT_ID',
 });
 
 const queryClient = new QueryClient();
