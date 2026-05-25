@@ -4,16 +4,18 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "node scripts/patch-passport.js && next build",
     "start": "next start",
-    "lint": "eslint",
-    "postinstall": "sed -i.bak 's/export { mezoMainnet, mezoTestnet } from \"@mezo-org\\/orangekit\";/import { mezoMainnet } from \"@mezo-org\\/orangekit\";\\nimport { mezoTestnet } from \"viem\\/chains\";\\nexport { mezoMainnet, mezoTestnet };/g' node_modules/@mezo-org/passport/dist/src/constants.js || true"
+    "lint": "eslint"
   },
   "dependencies": {
+    "@base-ui/react": "^1.5.0",
     "@mezo-org/orangekit": "^1.0.0-beta.40",
+    "@mezo-org/orangekit-smart-account": "^1.0.0-beta.24",
     "@mezo-org/passport": "^0.17.2",
     "@rainbow-me/rainbowkit": "^2.2.11",
     "@tanstack/react-query": "^5.100.14",
+    "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "framer-motion": "^12.40.0",
     "lucide-react": "^1.16.0",
@@ -25,6 +27,7 @@
     "react-dom": "19.2.4",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.6.0",
+    "tailwindcss-animate": "^1.0.7",
     "viem": "^2.50.4",
     "wagmi": "^2.19.5"
   },
