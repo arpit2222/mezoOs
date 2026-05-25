@@ -1,8 +1,11 @@
 'use client';
 import { useState } from 'react';
 import { Bot, Send, Sparkles } from 'lucide-react';
+import { useAccount } from 'wagmi';
+import { toast } from 'sonner';
 
 export default function AiAssistantPage() {
+  const { address } = useAccount();
   const [prompt, setPrompt] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
@@ -94,10 +97,37 @@ export default function AiAssistantPage() {
                 </div>
               </div>
               <div className="mt-6 flex justify-end gap-3">
-                <button className="px-4 py-2 rounded-lg text-sm font-medium hover:bg-secondary border border-border transition-colors">
+                <button 
+                  onClick={() => { setResult(null); setPrompt(''); }}
+                  className="px-4 py-2 rounded-lg text-sm font-medium hover:bg-secondary border border-border transition-colors"
+                >
                   Discard
                 </button>
-                <button className="bg-primary text-primary-foreground px-6 py-2 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors">
+                <button 
+                  onClick={async () => {
+                    if (!address) return toast.error('Please connect your wallet');
+                    try {
+                      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+                      await fetch(`${apiUrl}/api/invoices`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 
+                          senderWallet: address, 
+                          recipientWallet: result.recipientWallet, 
+                          amount: Number(result.amount), 
+                          dueDate: new Date(result.dueDate), 
+                          memo: result.memo 
+                        })
+                      });
+                      toast.success('Invoice Created successfully from AI!');
+                      setResult(null);
+                      setPrompt('');
+                    } catch (err) {
+                      toast.error('Failed to save AI invoice');
+                    }
+                  }}
+                  className="bg-primary text-primary-foreground px-6 py-2 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
+                >
                   Create Invoice
                 </button>
               </div>
