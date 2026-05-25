@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useAccount } from 'wagmi';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -10,21 +11,41 @@ import { Plus } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function InvoicesPage() {
+  const { address } = useAccount();
   const [open, setOpen] = useState(false);
+  const [invoices, setInvoices] = useState<any[]>([]);
   const [amount, setAmount] = useState('');
   const [recipient, setRecipient] = useState('');
   const [memo, setMemo] = useState('');
   const [dueDate, setDueDate] = useState('');
 
+  const fetchInvoices = async () => {
+    if (!address) return;
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+      const res = await fetch(`${apiUrl}/api/invoices/${address}`);
+      const data = await res.json();
+      setInvoices(data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    fetchInvoices();
+  }, [address]);
+
   const handleCreateInvoice = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!address) return toast.error('Please connect your wallet');
+    
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
       await fetch(`${apiUrl}/api/invoices`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          senderWallet: '0x123...user', // Mock user wallet
+          senderWallet: address, 
           recipientWallet: recipient, 
           amount: Number(amount), 
           dueDate: new Date(dueDate), 
@@ -35,13 +56,13 @@ export default function InvoicesPage() {
         description: `Invoice for ${amount} MUSD to ${recipient} created successfully.`,
       });
       setOpen(false);
+      fetchInvoices();
     } catch (err) {
       toast.error('Failed to create invoice');
     }
   };
 
   const handlePay = (id: string) => {
-    // Here we will eventually trigger smart contract
     toast.success('Payment Processing', {
       description: `Paying invoice ${id}... Check your wallet to confirm.`,
     });
@@ -123,33 +144,38 @@ export default function InvoicesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {/* Mock Data for now */}
-              {[
-                { id: 'INV-001', recipient: '0xabc...def', amount: 500, date: '2026-06-01', status: 'pending' },
-                { id: 'INV-002', recipient: '0x123...456', amount: 1250, date: '2026-06-15', status: 'pending' },
-                { id: 'INV-003', recipient: '0x789...012', amount: 250, date: '2026-05-20', status: 'paid' },
-              ].map((inv) => (
-                <TableRow key={inv.id} className="border-border">
-                  <TableCell className="font-medium">{inv.id}</TableCell>
-                  <TableCell className="font-mono text-muted-foreground">{inv.recipient}</TableCell>
-                  <TableCell>{inv.amount} MUSD</TableCell>
-                  <TableCell>{inv.date}</TableCell>
-                  <TableCell>
-                    <span className={`px-2 py-1 rounded text-xs font-medium ${
-                      inv.status === 'paid' ? 'bg-green-500/20 text-green-500' : 'bg-yellow-500/20 text-yellow-500'
-                    }`}>
-                      {inv.status.toUpperCase()}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {inv.status === 'pending' && (
-                      <Button variant="outline" size="sm" onClick={() => handlePay(inv.id)}>
-                        Pay
-                      </Button>
-                    )}
+              {invoices.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                    No invoices found.
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                invoices.map((inv) => (
+                  <TableRow key={inv._id} className="border-border">
+                    <TableCell className="font-medium">{inv._id.substring(0, 8)}</TableCell>
+                    <TableCell className="font-mono text-muted-foreground">
+                      {inv.recipientWallet.substring(0, 6)}...{inv.recipientWallet.substring(inv.recipientWallet.length - 4)}
+                    </TableCell>
+                    <TableCell>{inv.amount} MUSD</TableCell>
+                    <TableCell>{new Date(inv.dueDate).toLocaleDateString()}</TableCell>
+                    <TableCell>
+                      <span className={`px-2 py-1 rounded text-xs font-medium ${
+                        inv.status === 'paid' ? 'bg-green-500/20 text-green-500' : 'bg-yellow-500/20 text-yellow-500'
+                      }`}>
+                        {inv.status.toUpperCase()}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {inv.status === 'pending' && inv.senderWallet === address && (
+                        <Button variant="outline" size="sm" onClick={() => handlePay(inv._id)}>
+                          Pay
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </CardContent>
