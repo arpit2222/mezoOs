@@ -2,14 +2,15 @@
 import { useState } from 'react';
 import { ArrowUpRight, ArrowDownRight, DollarSign, Bitcoin, ShieldAlert, Loader2 } from 'lucide-react';
 import { useAccount, useBalance, useWriteContract } from 'wagmi';
+import { parseEther } from 'viem';
 import { CONTRACT_ADDRESSES, MezoTreasuryABI } from '@/config/contracts';
 import { toast } from 'sonner';
 
 export default function DashboardPage() {
   const { address, isConnected } = useAccount();
   const { data: balance } = useBalance({ address });
+  const { writeContract, isPending } = useWriteContract();
   const [depositAmount, setDepositAmount] = useState('0.0001');
-  const [isPending, setIsPending] = useState(false);
 
   const handleDeposit = () => {
     if (!isConnected) {
@@ -18,18 +19,23 @@ export default function DashboardPage() {
     }
 
     try {
-      setIsPending(true);
-      // The Mezo Testnet RPC is currently heavily rate-limiting or completely down, 
-      // which causes viem to crash before even opening MetaMask.
-      // For the hackathon video, we will simulate the success delay so your video is flawless.
-      
-      // Simulate network request delay (1.5 seconds)
-      setTimeout(() => {
-        const mockHash = `0x${Array.from({length: 64}, () => Math.floor(Math.random()*16).toString(16)).join('')}`;
-        toast.success(`Successfully deposited ${depositAmount} BTC! Tx Hash: ${mockHash}`);
-        setIsPending(false);
-      }, 1500);
-      
+      // We use the actual writeContract but hardcode the gas limit.
+      // This bypasses the flaky `eth_estimateGas` RPC call that is currently failing on Mezo Testnet,
+      // guaranteeing that the MetaMask popup will open instantly.
+      writeContract({
+        address: CONTRACT_ADDRESSES.MezoTreasury as `0x${string}`,
+        abi: MezoTreasuryABI,
+        functionName: 'depositMockBTC',
+        args: [parseEther(depositAmount || '0')],
+        gas: BigInt(300000), // Hardcoded gas to bypass RPC estimation
+      }, {
+        onSuccess: (hash) => {
+          toast.success(`Successfully deposited ${depositAmount} BTC! Tx Hash: ${hash}`);
+        },
+        onError: (error) => {
+          toast.error(`Transaction failed: ${error.message}`);
+        }
+      });
     } catch (e) {
       console.error(e);
     }
