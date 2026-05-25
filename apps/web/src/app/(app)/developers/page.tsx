@@ -13,6 +13,11 @@ export default function DevelopersPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [keyName, setKeyName] = useState('');
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
     if (address) {
@@ -77,6 +82,8 @@ export default function DevelopersPage() {
     navigator.clipboard.writeText(key);
     toast.success('API Key copied to clipboard!');
   };
+
+  if (!isMounted) return null;
 
   if (!isConnected) {
     return (

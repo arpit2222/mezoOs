@@ -14,6 +14,8 @@ const navItems = [
   { name: 'Invoices', href: '/invoices', icon: FileText },
   { name: 'Subscriptions', href: '/subscriptions', icon: Repeat },
   { name: 'Event Logs', href: '/events', icon: Activity },
+  { name: 'Developer Portal', href: '/developers', icon: Settings },
+  { name: 'API Docs', href: '/docs', icon: FileText },
   { name: 'AI Assistant', href: '/ai', icon: Bot },
 ];
 
@@ -38,6 +40,11 @@ export function Sidebar() {
 
   // Fallback for when Wagmi's public RPC is down but the user's MetaMask RPC works
   const [fallbackBtc, setFallbackBtc] = useState<string | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
   
   useEffect(() => {
     if (address && !btcBalance && (window as any).ethereum) {
@@ -49,6 +56,12 @@ export function Sidebar() {
       }).catch(console.error);
     }
   }, [address, btcBalance]);
+
+  if (!isMounted) {
+    return (
+      <aside className="w-64 border-r border-border bg-card h-[calc(100vh-4rem)] sticky top-16 flex flex-col" />
+    );
+  }
 
   return (
     <aside className="w-64 border-r border-border bg-card h-[calc(100vh-4rem)] sticky top-16 flex flex-col">
