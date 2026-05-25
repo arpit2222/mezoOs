@@ -1,7 +1,10 @@
-import OpenAI from 'openai';
+import { AzureOpenAI } from 'openai';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || 'dummy_key'
+const openai = new AzureOpenAI({
+  endpoint: process.env.AZURE_OPENAI_ENDPOINT || "https://testconsulting.services.ai.azure.com/",
+  apiKey: process.env.OPENAI_API_KEY || 'dummy_key',
+  apiVersion: process.env.AZURE_OPENAI_API_VERSION || "2024-02-01",
+  deployment: process.env.AZURE_OPENAI_DEPLOYMENT_NAME || "gpt-4o-mini",
 });
 
 const SYSTEM_PROMPT = `You are the MezoOS treasury assistant for a Bitcoin-native operating account.
