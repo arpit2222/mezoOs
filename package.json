@@ -9,7 +9,8 @@
   "scripts": {
     "dev:web": "npm run dev -w apps/web",
     "dev:api": "npm run dev -w apps/api",
-    "dev": "npm run dev:web & npm run dev:api"
+    "dev": "npm run dev:web & npm run dev:api",
+    "postinstall": "node apps/web/scripts/patch-passport.js"
   },
   "dependencies": {
     "check-error": "^2.1.3"
