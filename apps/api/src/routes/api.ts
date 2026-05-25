@@ -11,18 +11,18 @@ const router = Router();
 // TREASURY ROUTES
 // =======================
 router.get('/treasury/:walletAddress', async (req, res) => {
-  const { walletAddress } = req.params;
-  let treasury = await Treasury.findOne({ walletAddress });
+  const addressRegex = new RegExp(`^${req.params.walletAddress}$`, 'i');
+  let treasury = await Treasury.findOne({ walletAddress: addressRegex });
   if (!treasury) {
-    treasury = await Treasury.create({ walletAddress });
+    treasury = await Treasury.create({ walletAddress: req.params.walletAddress });
   }
   res.json(treasury);
 });
 
 router.patch('/treasury/:walletAddress', async (req, res) => {
-  const { walletAddress } = req.params;
+  const addressRegex = new RegExp(`^${req.params.walletAddress}$`, 'i');
   const updated = await Treasury.findOneAndUpdate(
-    { walletAddress },
+    { walletAddress: addressRegex },
     { $set: req.body },
     { new: true, upsert: true }
   );
@@ -38,8 +38,9 @@ router.post('/invoices', async (req, res) => {
 });
 
 router.get('/invoices/:walletAddress', async (req, res) => {
+  const addressRegex = new RegExp(`^${req.params.walletAddress}$`, 'i');
   const invoices = await Invoice.find({ 
-    $or: [{ senderWallet: req.params.walletAddress }, { recipientWallet: req.params.walletAddress }]
+    $or: [{ senderWallet: addressRegex }, { recipientWallet: addressRegex }]
   }).sort({ createdAt: -1 });
   res.json(invoices);
 });
@@ -63,7 +64,8 @@ router.post('/subscriptions', async (req, res) => {
 });
 
 router.get('/subscriptions/:walletAddress', async (req, res) => {
-  const subs = await Subscription.find({ subscriberWallet: req.params.walletAddress }).sort({ createdAt: -1 });
+  const addressRegex = new RegExp(`^${req.params.walletAddress}$`, 'i');
+  const subs = await Subscription.find({ subscriberWallet: addressRegex }).sort({ createdAt: -1 });
   res.json(subs);
 });
 
@@ -86,7 +88,8 @@ router.post('/events', async (req, res) => {
 });
 
 router.get('/events/:walletAddress', async (req, res) => {
-  const events = await EventLog.find({ walletAddress: req.params.walletAddress }).sort({ createdAt: -1 });
+  const addressRegex = new RegExp(`^${req.params.walletAddress}$`, 'i');
+  const events = await EventLog.find({ walletAddress: addressRegex }).sort({ createdAt: -1 });
   res.json(events);
 });
 
