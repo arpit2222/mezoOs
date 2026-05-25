@@ -13,8 +13,9 @@ export default function AiAssistantPage() {
     
     setLoading(true);
     try {
-      // Connect to Express backend (port 4000)
-      const res = await fetch('http://localhost:4000/api/ai/invoice', {
+      // Connect to Express backend
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+      const res = await fetch(`${apiUrl}/api/ai/invoice`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt })
