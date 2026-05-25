@@ -13,9 +13,7 @@ const navItems = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Invoices', href: '/invoices', icon: FileText },
   { name: 'Subscriptions', href: '/subscriptions', icon: Repeat },
-  { name: 'Automation', href: '/automation', icon: Settings },
   { name: 'Event Logs', href: '/events', icon: Activity },
-  { name: 'Team', href: '/team', icon: Users },
   { name: 'AI Assistant', href: '/ai', icon: Bot },
 ];
 
