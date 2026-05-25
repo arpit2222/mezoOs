@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { ContractFooter } from '@/components/layout/ContractFooter';
 
 export default function LandingPage() {
   return (
@@ -61,40 +62,7 @@ export default function LandingPage() {
         </div>
       </main>
       
-      <footer className="mt-24 border-t border-border bg-card/50 py-12 px-8">
-        <div className="max-w-5xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
-          <div>
-            <h4 className="font-bold text-lg mb-2">MezoOS Contracts</h4>
-            <p className="text-sm text-muted-foreground">Deployed on Mezo Testnet</p>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-12 gap-y-2 text-sm">
-            <div className="flex justify-between gap-4">
-              <span className="text-muted-foreground">Mock MUSD:</span>
-              <span className="font-mono text-primary">0xB07082...4Cef</span>
-            </div>
-            <div className="flex justify-between gap-4">
-              <span className="text-muted-foreground">Mock MEZO:</span>
-              <span className="font-mono text-primary">0xaEAD54...8bd1</span>
-            </div>
-            <div className="flex justify-between gap-4">
-              <span className="text-muted-foreground">Treasury:</span>
-              <span className="font-mono text-primary">0x1B1aB5...0a02</span>
-            </div>
-            <div className="flex justify-between gap-4">
-              <span className="text-muted-foreground">Invoice Mgr:</span>
-              <span className="font-mono text-primary">0xcDC70B...3995</span>
-            </div>
-            <div className="flex justify-between gap-4">
-              <span className="text-muted-foreground">Subscriptions:</span>
-              <span className="font-mono text-primary">0xdaa067...fB92</span>
-            </div>
-            <div className="flex justify-between gap-4">
-              <span className="text-muted-foreground">Utility Tier:</span>
-              <span className="font-mono text-primary">0x20e61A...399f</span>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <ContractFooter />
     </div>
   );
 }
