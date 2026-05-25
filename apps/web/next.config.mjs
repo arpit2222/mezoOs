@@ -4,6 +4,10 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  webpack: (config) => {
+    config.externals.push('@react-native-async-storage/async-storage');
+    return config;
+  },
 };
 
 export default nextConfig;
