@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { ArrowUpRight, ArrowDownRight, DollarSign, Bitcoin, ShieldAlert, Loader2 } from 'lucide-react';
-import { useAccount, useBalance } from 'wagmi';
+import { useAccount, useBalance, useWriteContract } from 'wagmi';
 import { parseEther, encodeFunctionData } from 'viem';
 import { CONTRACT_ADDRESSES, MezoTreasuryABI } from '@/config/contracts';
 import { toast } from 'sonner';
@@ -12,6 +12,8 @@ export default function DashboardPage() {
   const [depositAmount, setDepositAmount] = useState('0.0001');
   const [isPending, setIsPending] = useState(false);
 
+  const { writeContractAsync } = useWriteContract();
+
   const handleDeposit = async () => {
     if (!isConnected || !address) {
       toast.error('Please connect your wallet first.');
@@ -21,15 +23,15 @@ export default function DashboardPage() {
     try {
       setIsPending(true);
       
-      // The Mezo Testnet RPC is currently heavily rate-limiting connections,
-      // which causes MetaMask to fail before the popup even appears.
-      // For the sake of the hackathon demo, we simulate a successful transaction.
-      setTimeout(() => {
-        const mockHash = `0x${Array.from({length: 64}, () => Math.floor(Math.random()*16).toString(16)).join('')}`;
-        toast.success(`Successfully deposited ${depositAmount} BTC! Tx Hash: ${mockHash}`);
-        setIsPending(false);
-      }, 2000);
+      const txHash = await writeContractAsync({
+        address: CONTRACT_ADDRESSES.MezoTreasury as `0x${string}`,
+        abi: MezoTreasuryABI,
+        functionName: 'depositMockBTC',
+        args: [parseEther(depositAmount || '0')]
+      });
 
+      toast.success(`Successfully deposited ${depositAmount} BTC! Tx Hash: ${txHash}`);
+      setIsPending(false);
     } catch (e: any) {
       setIsPending(false);
       console.error(e);

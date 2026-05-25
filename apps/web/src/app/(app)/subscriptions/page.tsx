@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAccount } from 'wagmi';
+import { useAccount, useWriteContract, useReadContract } from 'wagmi';
+import { parseEther } from 'viem';
+import { CONTRACT_ADDRESSES, RecurringPaymentsABI, ERC20ABI } from '@/config/contracts';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -34,11 +36,39 @@ export default function SubscriptionsPage() {
     fetchSubscriptions();
   }, [address]);
 
+  const { writeContractAsync } = useWriteContract();
+  const { data: nextSubIdRaw } = useReadContract({
+    address: CONTRACT_ADDRESSES.RecurringPayments as `0x${string}`,
+    abi: [{ name: 'nextSubId', type: 'function', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint256' }] }],
+    functionName: 'nextSubId'
+  });
+
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!address) return toast.error('Please connect your wallet');
 
     try {
+      toast.info('Please approve MUSD spending in MetaMask...');
+      
+      const approveAmount = Number(amount) * 12; // Approve for 12 billing cycles
+      await writeContractAsync({
+        address: CONTRACT_ADDRESSES.MockMUSD as `0x${string}`,
+        abi: ERC20ABI,
+        functionName: 'approve',
+        args: [CONTRACT_ADDRESSES.RecurringPayments as `0x${string}`, parseEther(approveAmount.toString())]
+      });
+
+      toast.info('Approval sent. Now signing subscription creation...');
+
+      const txHash = await writeContractAsync({
+        address: CONTRACT_ADDRESSES.RecurringPayments as `0x${string}`,
+        abi: RecurringPaymentsABI,
+        functionName: 'createSubscription',
+        args: [merchant as `0x${string}`, parseEther(amount || '0'), BigInt(Number(interval) * 24 * 60 * 60), title]
+      });
+
+      const assignedId = nextSubIdRaw ? Number(nextSubIdRaw) : Math.floor(Math.random() * 1000);
+
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
       const nextPaymentDate = new Date();
       nextPaymentDate.setDate(nextPaymentDate.getDate() + Number(interval));
@@ -52,17 +82,18 @@ export default function SubscriptionsPage() {
           title,
           amount: Number(amount),
           intervalDays: Number(interval),
-          nextPaymentDate
+          nextPaymentDate,
+          onchainSubId: assignedId.toString()
         })
       });
       
       toast.success('Subscription Created', {
-        description: 'Your recurring payment has been set up successfully.',
+        description: `Tx Hash: ${txHash.substring(0, 10)}...`,
       });
       setOpen(false);
       fetchSubscriptions();
-    } catch (err) {
-      toast.error('Failed to create subscription');
+    } catch (err: any) {
+      toast.error(`Failed to create subscription: ${err.message}`);
     }
   };
 
@@ -81,16 +112,25 @@ export default function SubscriptionsPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: string, onchainSubId?: string) => {
     try {
+      toast.info('Please sign cancellation in MetaMask...');
+      
+      await writeContractAsync({
+        address: CONTRACT_ADDRESSES.RecurringPayments as `0x${string}`,
+        abi: RecurringPaymentsABI,
+        functionName: 'cancelSubscription',
+        args: [BigInt(onchainSubId || '1')]
+      });
+
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
       await fetch(`${apiUrl}/api/subscriptions/${id}`, {
         method: 'DELETE',
       });
-      toast.success('Subscription cancelled');
+      toast.success('Subscription cancelled on-chain and removed');
       fetchSubscriptions();
-    } catch (err) {
-      toast.error('Failed to cancel subscription');
+    } catch (err: any) {
+      toast.error(`Failed to cancel subscription: ${err.message}`);
     }
   };
 
@@ -172,7 +212,7 @@ export default function SubscriptionsPage() {
                       <Play size={16} /> Resume
                     </Button>
                   )}
-                  <Button onClick={() => handleDelete(sub._id)} variant="outline" className="px-3 border-border text-destructive hover:text-destructive">
+                  <Button onClick={() => handleDelete(sub._id, sub.onchainSubId)} variant="outline" className="px-3 border-border text-destructive hover:text-destructive">
                     <Trash2 size={16} />
                   </Button>
                 </div>

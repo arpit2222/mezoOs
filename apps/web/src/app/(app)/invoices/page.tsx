@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAccount } from 'wagmi';
+import { useAccount, useWriteContract, useReadContract } from 'wagmi';
+import { parseEther } from 'viem';
+import { CONTRACT_ADDRESSES, InvoiceManagerABI, ERC20ABI } from '@/config/contracts';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -35,11 +37,29 @@ export default function InvoicesPage() {
     fetchInvoices();
   }, [address]);
 
+  const { writeContractAsync } = useWriteContract();
+  const { data: nextInvoiceIdRaw } = useReadContract({
+    address: CONTRACT_ADDRESSES.InvoiceManager as `0x${string}`,
+    abi: [{ name: 'nextInvoiceId', type: 'function', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint256' }] }],
+    functionName: 'nextInvoiceId'
+  });
+
   const handleCreateInvoice = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!address) return toast.error('Please connect your wallet');
     
     try {
+      toast.info('Please sign the transaction in MetaMask...');
+      
+      const txHash = await writeContractAsync({
+        address: CONTRACT_ADDRESSES.InvoiceManager as `0x${string}`,
+        abi: InvoiceManagerABI,
+        functionName: 'createInvoice',
+        args: [recipient as `0x${string}`, parseEther(amount || '0'), memo, BigInt(Math.floor(new Date(dueDate).getTime() / 1000))]
+      });
+
+      const assignedId = nextInvoiceIdRaw ? Number(nextInvoiceIdRaw) : Math.floor(Math.random() * 1000);
+
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
       await fetch(`${apiUrl}/api/invoices`, {
         method: 'POST',
@@ -49,39 +69,55 @@ export default function InvoicesPage() {
           recipientWallet: recipient, 
           amount: Number(amount), 
           dueDate: new Date(dueDate), 
-          memo 
+          memo,
+          onchainInvoiceId: assignedId.toString()
         })
       });
+
       toast.success('Invoice Created', {
-        description: `Invoice for ${amount} MUSD to ${recipient} created successfully.`,
+        description: `Tx Hash: ${txHash.substring(0, 10)}...`,
       });
       setOpen(false);
       fetchInvoices();
-    } catch (err) {
-      toast.error('Failed to create invoice');
+    } catch (err: any) {
+      toast.error(`Failed to create invoice: ${err.message}`);
     }
   };
 
-  const handlePay = async (id: string) => {
-    toast.success('Payment Processing', {
-      description: `Paying invoice... Check your wallet to confirm.`,
-    });
-    
-    // Simulate MetaMask confirmation delay
-    setTimeout(async () => {
-      try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
-        await fetch(`${apiUrl}/api/invoices/${id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: 'paid' })
-        });
-        toast.success(`Transaction confirmed! Invoice paid.`);
-        fetchInvoices();
-      } catch (err) {
-        toast.error('Failed to update invoice status');
-      }
-    }, 1500);
+  const handlePay = async (id: string, amountToPay: number, onchainId?: string) => {
+    try {
+      toast.info('Please approve MUSD spending in MetaMask...');
+      
+      // Step 1: Approve MUSD
+      const approveTx = await writeContractAsync({
+        address: CONTRACT_ADDRESSES.MockMUSD as `0x${string}`,
+        abi: ERC20ABI,
+        functionName: 'approve',
+        args: [CONTRACT_ADDRESSES.InvoiceManager as `0x${string}`, parseEther(amountToPay.toString())]
+      });
+
+      toast.info(`Approval sent. Now signing payment...`);
+
+      // We wait for the user to sign the actual payment tx
+      const payTx = await writeContractAsync({
+        address: CONTRACT_ADDRESSES.InvoiceManager as `0x${string}`,
+        abi: InvoiceManagerABI,
+        functionName: 'payInvoice',
+        args: [BigInt(onchainId || '1')]
+      });
+
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+      await fetch(`${apiUrl}/api/invoices/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'paid' })
+      });
+
+      toast.success(`Transaction confirmed! Invoice paid.`);
+      fetchInvoices();
+    } catch (err: any) {
+      toast.error(`Payment failed: ${err.message}`);
+    }
   };
 
   return (
@@ -184,7 +220,7 @@ export default function InvoicesPage() {
                     </TableCell>
                     <TableCell className="text-right">
                       {inv.status === 'pending' && inv.senderWallet === address && (
-                        <Button variant="outline" size="sm" onClick={() => handlePay(inv._id)}>
+                        <Button variant="outline" size="sm" onClick={() => handlePay(inv._id, inv.amount, inv.onchainInvoiceId)}>
                           Pay
                         </Button>
                       )}
