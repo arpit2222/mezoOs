@@ -104,7 +104,7 @@ export default function DashboardPage() {
           </div>
           <p className="text-3xl font-bold">
             {musdBorrowedRaw 
-              ? new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 }).format(Number(formatEther((musdBorrowedRaw as bigint) / (10n ** 18n)))) 
+              ? new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 }).format(Number(formatEther((musdBorrowedRaw as bigint) / (BigInt(10) ** BigInt(18))))) 
               : '0'} MUSD
           </p>
           <p className="text-sm text-muted-foreground mt-2">@ 1% fixed APR</p>

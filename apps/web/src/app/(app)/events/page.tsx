@@ -55,7 +55,7 @@ export default function EventsPage() {
             color: 'text-orange-500',
             bg: 'bg-orange-500/20',
             title: 'Collateral Deposited',
-            desc: `Deposited ${formatEther((log.args as any).btcAmount || zero)} BTC and minted ${new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 }).format(Number(formatEther(((log.args as any).musdMinted || zero) / (10n ** 18n))))} MUSD`,
+            desc: `Deposited ${formatEther((log.args as any).btcAmount || zero)} BTC and minted ${new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 }).format(Number(formatEther(((log.args as any).musdMinted || zero) / (BigInt(10) ** BigInt(18)))))} MUSD`,
             blockNumber: log.blockNumber
           })),
           ...invCreatedLogs.map(log => ({
