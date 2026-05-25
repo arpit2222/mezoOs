@@ -66,6 +66,34 @@ export default function SubscriptionsPage() {
     }
   };
 
+  const handleUpdateStatus = async (id: string, newStatus: string) => {
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+      await fetch(`${apiUrl}/api/subscriptions/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus })
+      });
+      toast.success(`Subscription ${newStatus === 'paused' ? 'paused' : 'resumed'}`);
+      fetchSubscriptions();
+    } catch (err) {
+      toast.error('Failed to update subscription');
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+      await fetch(`${apiUrl}/api/subscriptions/${id}`, {
+        method: 'DELETE',
+      });
+      toast.success('Subscription cancelled');
+      fetchSubscriptions();
+    } catch (err) {
+      toast.error('Failed to cancel subscription');
+    }
+  };
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex items-center justify-between">
@@ -136,15 +164,15 @@ export default function SubscriptionsPage() {
                 </div>
                 <div className="flex gap-2">
                   {sub.status === 'active' ? (
-                    <Button variant="outline" className="flex-1 gap-2 border-border text-yellow-500 hover:text-yellow-600">
+                    <Button onClick={() => handleUpdateStatus(sub._id, 'paused')} variant="outline" className="flex-1 gap-2 border-border text-yellow-500 hover:text-yellow-600">
                       <Pause size={16} /> Pause
                     </Button>
                   ) : (
-                    <Button variant="outline" className="flex-1 gap-2 border-border text-green-500 hover:text-green-600">
+                    <Button onClick={() => handleUpdateStatus(sub._id, 'active')} variant="outline" className="flex-1 gap-2 border-border text-green-500 hover:text-green-600">
                       <Play size={16} /> Resume
                     </Button>
                   )}
-                  <Button variant="outline" className="px-3 border-border text-destructive hover:text-destructive">
+                  <Button onClick={() => handleDelete(sub._id)} variant="outline" className="px-3 border-border text-destructive hover:text-destructive">
                     <Trash2 size={16} />
                   </Button>
                 </div>

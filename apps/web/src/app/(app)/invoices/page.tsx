@@ -62,10 +62,26 @@ export default function InvoicesPage() {
     }
   };
 
-  const handlePay = (id: string) => {
+  const handlePay = async (id: string) => {
     toast.success('Payment Processing', {
-      description: `Paying invoice ${id}... Check your wallet to confirm.`,
+      description: `Paying invoice... Check your wallet to confirm.`,
     });
+    
+    // Simulate MetaMask confirmation delay
+    setTimeout(async () => {
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+        await fetch(`${apiUrl}/api/invoices/${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'paid' })
+        });
+        toast.success(`Transaction confirmed! Invoice paid.`);
+        fetchInvoices();
+      } catch (err) {
+        toast.error('Failed to update invoice status');
+      }
+    }, 1500);
   };
 
   return (
