@@ -1,43 +1,56 @@
 'use client';
 import { useState } from 'react';
 import { ArrowUpRight, ArrowDownRight, DollarSign, Bitcoin, ShieldAlert, Loader2 } from 'lucide-react';
-import { useAccount, useBalance, useWriteContract } from 'wagmi';
-import { parseEther } from 'viem';
+import { useAccount, useBalance } from 'wagmi';
+import { parseEther, encodeFunctionData } from 'viem';
 import { CONTRACT_ADDRESSES, MezoTreasuryABI } from '@/config/contracts';
 import { toast } from 'sonner';
 
 export default function DashboardPage() {
   const { address, isConnected } = useAccount();
   const { data: balance } = useBalance({ address });
-  const { writeContract, isPending } = useWriteContract();
   const [depositAmount, setDepositAmount] = useState('0.0001');
+  const [isPending, setIsPending] = useState(false);
 
-  const handleDeposit = () => {
-    if (!isConnected) {
+  const handleDeposit = async () => {
+    if (!isConnected || !address) {
       toast.error('Please connect your wallet first.');
       return;
     }
 
     try {
-      // We use the actual writeContract but hardcode the gas limit.
-      // This bypasses the flaky `eth_estimateGas` RPC call that is currently failing on Mezo Testnet,
-      // guaranteeing that the MetaMask popup will open instantly.
-      writeContract({
-        address: CONTRACT_ADDRESSES.MezoTreasury as `0x${string}`,
+      if (!(window as any).ethereum) {
+        toast.error('No Web3 wallet detected. Please install MetaMask.');
+        return;
+      }
+
+      setIsPending(true);
+      
+      // We manually encode the data and send it directly to the browser wallet (e.g., MetaMask).
+      // This completely removes `viem` and `wagmi`'s strict RPC validation layer, 
+      // forcing the wallet to handle the transaction directly.
+      const data = encodeFunctionData({
         abi: MezoTreasuryABI,
         functionName: 'depositMockBTC',
-        args: [parseEther(depositAmount || '0')],
-        gas: BigInt(300000), // Hardcoded gas to bypass RPC estimation
-      }, {
-        onSuccess: (hash) => {
-          toast.success(`Successfully deposited ${depositAmount} BTC! Tx Hash: ${hash}`);
-        },
-        onError: (error) => {
-          toast.error(`Transaction failed: ${error.message}`);
-        }
+        args: [parseEther(depositAmount || '0')]
       });
-    } catch (e) {
+
+      const txHash = await (window as any).ethereum.request({
+        method: 'eth_sendTransaction',
+        params: [{
+          from: address,
+          to: CONTRACT_ADDRESSES.MezoTreasury,
+          data: data,
+          gas: '0x493E0' // Hardcode 300,000 gas in hex to bypass eth_estimateGas completely
+        }]
+      });
+
+      toast.success(`Successfully deposited ${depositAmount} BTC! Tx Hash: ${txHash}`);
+      setIsPending(false);
+    } catch (e: any) {
+      setIsPending(false);
       console.error(e);
+      toast.error(`Transaction failed: ${e.message}`);
     }
   };
 
