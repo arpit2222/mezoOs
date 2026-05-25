@@ -1,11 +1,25 @@
-import { AzureOpenAI } from 'openai';
+import OpenAI from 'openai';
+import { getBearerTokenProvider, DefaultAzureCredential } from "@azure/identity";
 
-const openai = new AzureOpenAI({
-  endpoint: process.env.AZURE_OPENAI_ENDPOINT || "https://testconsulting.services.ai.azure.com/",
-  apiKey: process.env.OPENAI_API_KEY || 'dummy_key',
-  apiVersion: process.env.AZURE_OPENAI_API_VERSION || "2024-02-01",
-  deployment: process.env.AZURE_OPENAI_DEPLOYMENT_NAME || "gpt-4o-mini",
-});
+const endpoint = process.env.AZURE_OPENAI_ENDPOINT || "https://testconsulting.services.ai.azure.com/openai/v1";
+const deploymentName = process.env.AZURE_OPENAI_DEPLOYMENT_NAME || "gpt-5.4";
+const tokenProvider = getBearerTokenProvider(
+    new DefaultAzureCredential(),
+    'https://ai.azure.com/.default'
+);
+
+let openaiInstance: OpenAI | null = null;
+
+const getOpenAIClient = async () => {
+    if (!openaiInstance) {
+        openaiInstance = new OpenAI({
+            baseURL: endpoint,
+            apiKey: await tokenProvider(),
+            defaultQuery: { 'api-version': process.env.AZURE_OPENAI_API_VERSION || '2024-02-01' }
+        });
+    }
+    return openaiInstance;
+};
 
 const SYSTEM_PROMPT = `You are the MezoOS treasury assistant for a Bitcoin-native operating account.
 Your job is to help users manage BTC-backed MUSD operations safely and clearly.
@@ -19,8 +33,9 @@ You must:
 - format outputs as structured JSON when requested`;
 
 export const handleAiInvoice = async (prompt: string) => {
+  const openai = await getOpenAIClient();
   const response = await openai.chat.completions.create({
-    model: 'gpt-4o-mini',
+    model: deploymentName,
     messages: [
       { role: 'system', content: SYSTEM_PROMPT },
       { role: 'user', content: `Parse the following into a structured JSON invoice. Return ONLY JSON matching { recipientWallet, amount, dueDate, memo }. Input: ${prompt}` }
@@ -32,8 +47,9 @@ export const handleAiInvoice = async (prompt: string) => {
 };
 
 export const handleAiSummary = async (treasury: any) => {
+  const openai = await getOpenAIClient();
   const response = await openai.chat.completions.create({
-    model: 'gpt-4o-mini',
+    model: deploymentName,
     messages: [
       { role: 'system', content: SYSTEM_PROMPT },
       { role: 'user', content: `Summarize the following treasury state in 2-3 sentences and suggest next actions. Treasury: ${JSON.stringify(treasury)}` }
@@ -44,8 +60,9 @@ export const handleAiSummary = async (treasury: any) => {
 };
 
 export const handleAiPayment = async (data: any) => {
+  const openai = await getOpenAIClient();
   const response = await openai.chat.completions.create({
-    model: 'gpt-4o-mini',
+    model: deploymentName,
     messages: [
       { role: 'system', content: SYSTEM_PROMPT },
       { role: 'user', content: `Give a payment recommendation (pay_now, defer, or pause) and a brief rationale based on this data: ${JSON.stringify(data)}. Return ONLY JSON matching { recommendation, rationale }.` }
