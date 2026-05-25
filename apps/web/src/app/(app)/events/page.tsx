@@ -19,8 +19,8 @@ export default function EventsPage() {
       try {
         setIsLoading(true);
         const currentBlock = await publicClient.getBlockNumber();
-        // Fetch last 100 blocks to avoid RPC rate limits on testnet
-        const lookback = BigInt(100);
+        // Fetch last 5000 blocks to avoid RPC rate limits on testnet but still see old history
+        const lookback = BigInt(5000);
         const zero = BigInt(0);
         const fromBlock = currentBlock - lookback > zero ? currentBlock - lookback : zero;
 

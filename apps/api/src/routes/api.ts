@@ -3,9 +3,46 @@ import { Invoice } from '../models/Invoice';
 import { Treasury } from '../models/Treasury';
 import { Subscription } from '../models/Subscription';
 import { EventLog } from '../models/EventLog';
+import { ApiKey } from '../models/ApiKey';
 import { handleAiInvoice, handleAiSummary, handleAiPayment } from '../services/aiService';
 
 const router = Router();
+
+// =======================
+// API KEY ROUTES
+// =======================
+router.post('/keys', async (req, res) => {
+  const { merchantAddress, name } = req.body;
+  if (!merchantAddress) return res.status(400).json({ error: 'merchantAddress required' });
+  
+  const rawKey = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+  const apiKey = `mz_test_${rawKey}`;
+  
+  const key = await ApiKey.create({ merchantAddress, apiKey, name: name || 'Default API Key' });
+  res.json(key);
+});
+
+router.get('/keys/:walletAddress', async (req, res) => {
+  const addressRegex = new RegExp(`^${req.params.walletAddress}$`, 'i');
+  const keys = await ApiKey.find({ merchantAddress: addressRegex }).sort({ createdAt: -1 });
+  res.json(keys);
+});
+
+router.get('/keys/resolve/:apiKey', async (req, res) => {
+  if (req.params.apiKey === 'mz_test_demo') {
+    return res.json({ merchantAddress: '0x1234567890123456789012345678901234567890' });
+  }
+  const key = await ApiKey.findOne({ apiKey: req.params.apiKey });
+  if (!key) {
+    return res.status(404).json({ error: 'Invalid API Key' });
+  }
+  res.json({ merchantAddress: key.merchantAddress });
+});
+
+router.delete('/keys/:id', async (req, res) => {
+  await ApiKey.findByIdAndDelete(req.params.id);
+  res.json({ success: true });
+});
 
 // =======================
 // TREASURY ROUTES

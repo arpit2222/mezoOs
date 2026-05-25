@@ -14,6 +14,7 @@ export default function CheckoutPage() {
   const { address, isConnected } = useAccount();
   const { writeContractAsync } = useWriteContract();
 
+  const [apiKey, setApiKey] = useState<string | null>(null);
   const [merchant, setMerchant] = useState<string | null>(null);
   const [amount, setAmount] = useState<string | null>(null);
   const [interval, setInterval] = useState<string | null>(null);
@@ -21,13 +22,36 @@ export default function CheckoutPage() {
 
   const [step, setStep] = useState(0); // 0: idle, 1: approving, 2: subscribing, 3: success
   const [error, setError] = useState<string | null>(null);
+  const [isResolving, setIsResolving] = useState(true);
 
   useEffect(() => {
-    setMerchant(searchParams.get('merchant'));
+    const key = searchParams.get('apiKey');
+    setApiKey(key);
     setAmount(searchParams.get('amount'));
     setInterval(searchParams.get('interval'));
     setTitle(searchParams.get('title') || 'Subscription');
+
+    if (key) {
+      resolveApiKey(key);
+    } else {
+      setIsResolving(false);
+      setError('Invalid API Key');
+    }
   }, [searchParams]);
+
+  const resolveApiKey = async (key: string) => {
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://mezoos.onrender.com'}/api/keys/resolve/${key}`);
+      if (!res.ok) throw new Error('Invalid or revoked API Key');
+      const data = await res.json();
+      setMerchant(data.merchantAddress);
+    } catch (err) {
+      console.error(err);
+      setError('Invalid or revoked API Key');
+    } finally {
+      setIsResolving(false);
+    }
+  };
 
   const handleCancel = () => {
     if (window.parent) {
@@ -87,11 +111,24 @@ export default function CheckoutPage() {
     return `${days} days`;
   };
 
-  if (!merchant || !amount || !interval) {
+  if (isResolving || !amount || !interval) {
     return (
       <div className="flex h-screen items-center justify-center p-4 bg-background/95">
-        <Card className="w-full h-full border-0 shadow-none bg-transparent flex items-center justify-center">
-          <Loader2 className="animate-spin" />
+        <Card className="w-full h-full border-0 shadow-none bg-transparent flex flex-col items-center justify-center space-y-4">
+          <Loader2 className="animate-spin text-primary" size={32} />
+          <p className="text-muted-foreground text-sm font-medium animate-pulse">Authenticating merchant...</p>
+        </Card>
+      </div>
+    );
+  }
+
+  if (error || !merchant) {
+    return (
+      <div className="flex h-screen items-center justify-center p-4 bg-background/95">
+        <Card className="w-full max-w-sm p-6 flex flex-col items-center justify-center space-y-4 text-center">
+          <X className="text-destructive w-12 h-12" />
+          <h2 className="text-xl font-bold">Checkout Failed</h2>
+          <p className="text-muted-foreground text-sm">{error || 'Invalid configuration.'}</p>
         </Card>
       </div>
     );

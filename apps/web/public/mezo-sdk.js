@@ -1,9 +1,9 @@
 class MezoOS {
   constructor(config) {
-    if (!config || !config.merchantAddress) {
-      throw new Error('MezoOS: merchantAddress is required in the configuration object.');
+    if (!config || !config.apiKey) {
+      throw new Error('MezoOS: apiKey is required in the configuration object.');
     }
-    this.merchantAddress = config.merchantAddress;
+    this.apiKey = config.apiKey;
     this.baseUrl = config.baseUrl || 'https://mezoos.onrender.com';
     this._iframe = null;
     this._overlay = null;
@@ -69,7 +69,7 @@ class MezoOS {
     // Create iframe
     this._iframe = document.createElement('iframe');
     const params = new URLSearchParams({
-      merchant: this.merchantAddress,
+      apiKey: this.apiKey,
       amount: options.amount.toString(),
       interval: options.interval.toString(),
       title: options.title

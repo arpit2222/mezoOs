@@ -11,9 +11,9 @@ export default function DemoStorefront() {
   const handleSubscribe = () => {
     // Check if SDK loaded
     if (typeof window !== 'undefined' && (window as any).MezoOS) {
-      // 1. Initialize SDK with the merchant's wallet address
+      // 1. Initialize SDK with the merchant's API Key
       const mezo = new (window as any).MezoOS({ 
-        merchantAddress: '0x1234567890123456789012345678901234567890', // Hardcoded merchant address for demo
+        apiKey: 'mz_test_demo', // Test API Key
         baseUrl: window.location.origin // Dynamic base URL for local testing
       });
 
